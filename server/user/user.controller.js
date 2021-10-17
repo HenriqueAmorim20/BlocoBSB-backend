@@ -1,4 +1,6 @@
 const User = require('./user.model');
+const httpStatus = require('http-status');
+const APIError = require('../helpers/APIError');
 
 /**
  * Load user and append to req.
@@ -22,31 +24,32 @@ function get(req, res) {
 
 /**
  * Create new user
- * @property {string} req.body.username - The username of user.
- * @property {string} req.body.mobileNumber - The mobileNumber of user.
+ * @property {string} req.body.nome - The name of user.
+ * @property {string} req.body.senha - The password of user.
+ * @property {string} req.body.email - The email of user.
  * @returns {User}
  */
 function create(req, res, next) {
-  const user = new User({
-    username: req.body.username,
-    mobileNumber: req.body.mobileNumber
-  });
+  const user = new User(req.body);
 
-  user.save()
-    .then(savedUser => res.json(savedUser))
-    .catch(e => next(e));
+  try {
+    const result = user.save();
+    res.status(httpStatus.CREATED).json({ user: result });
+  } catch (error) {
+    next(new APIError(error.message, httpStatus.NOT_FOUND));
+  }
 }
 
 /**
  * Update existing user
  * @property {string} req.body.username - The username of user.
- * @property {string} req.body.mobileNumber - The mobileNumber of user.
+ * @property {string} req.body.senha - The password of user.
  * @returns {User}
  */
 function update(req, res, next) {
   const user = req.user;
-  user.username = req.body.username;
-  user.mobileNumber = req.body.mobileNumber;
+  user.nome = req.body.nome;
+  user.senha = req.body.senha;
 
   user.save()
     .then(savedUser => res.json(savedUser))
