@@ -30,7 +30,11 @@ const apiProdutos = {
     }
 
     try {
-      result = await Produto.list({ pagina, tamanhoPagina, filtros, campos });
+      if (filtros.search) {
+        result = await Produto.search(filtros);
+      } else {
+        result = await Produto.list({ pagina, tamanhoPagina, filtros, campos });
+      }
     } catch (error) {
       next(error);
     }

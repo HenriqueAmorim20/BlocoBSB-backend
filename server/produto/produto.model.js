@@ -92,6 +92,24 @@ Produtoschema.statics = {
     }
   },
 
+  async search(filtros = {}) {
+    const mongoQuery = { nome: { $regex: new RegExp(filtros.nome), $options: 'i' } };
+    try {
+      const count = await this.find(mongoQuery).count().exec();
+      let limit = count;
+      if (!limit) {
+        limit = 1;
+      }
+      const produtos = await this
+        .find(mongoQuery)
+        .limit(limit)
+        .exec();
+      return { produtos, count };
+    } catch (error) {
+      throw error;
+    }
+  },
+
   /**
    * Atualiza produto
    * @param {String} idProduto - Id do respondente
@@ -106,9 +124,7 @@ Produtoschema.statics = {
     const _idProduto = new ObjectId(idProduto);
     const updateQuery = {};
     updateQuery[updates.chave] = updates.valor;
-    console.log('\n\n\n\n');
-    console.log(updateQuery);
-    console.log('\n\n\n\n');
+
     try {
       const result = await this.findOneAndUpdate({ _id: _idProduto }, { $set: updateQuery }, { new: true }).exec();
       if (!result) throw new APIError('Não existe Produto com esse identificador', httpStatus.NOT_FOUND);
