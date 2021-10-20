@@ -5,10 +5,6 @@ const config = require('../../config/config');
 const User = require('../user/user.model');
 const crypto = require('crypto');
 
-const algorithm = 'aes-256-cbc';
-const initVector = crypto.randomBytes(16);
-const Securitykey = crypto.randomBytes(32);
-
 const apiAuth = {
   /**
  * Returns jwt token if valid username and password is provided
@@ -18,10 +14,14 @@ const apiAuth = {
  * @returns {*}
  */
   async login(req, res, next) {
+    const userRequest = req.body;
     try {
-      const user = await User.find({ email: req.body.email });
+      const user = await User.find({ email: userRequest.email });
+      const cipher = crypto.createCipheriv(config.crypto.algorithm, config.crypto.securitykey, config.crypto.initVector);
+      let encryptedData = cipher.update(userRequest.senha, 'utf-8', 'hex');
+      encryptedData += cipher.final('hex');
 
-      if (req.body.senha === user[0].senha) {
+      if (user[0].senha === encryptedData) {
         const token = jwt.sign({
           email: user.email
         }, config.jwtSecret);
@@ -30,16 +30,16 @@ const apiAuth = {
           user: user[0]
         });
       }
-      const err = new APIError('Authentication error', httpStatus.UNAUTHORIZED, true);
+      const err = new APIError('Senha incorreta.', httpStatus.UNAUTHORIZED, true);
       return next(err);
     } catch (error) {
-      const err = new APIError('Email não encontrado', httpStatus.NOT_FOUND, true);
+      const err = new APIError('Email não encontrado.', httpStatus.NOT_FOUND, true);
       return next(err);
     }
   },
 
   async encrypt(req, res, next) {
-    const cipher = crypto.createCipheriv(algorithm, Securitykey, initVector);
+    const cipher = crypto.createCipheriv(config.crypto.algorithm, config.crypto.securitykey, config.crypto.initVector);
     const data = req.body.data;
     let encryptedData = '';
 
@@ -54,7 +54,7 @@ const apiAuth = {
   },
 
   async decrypt(req, res, next) {
-    const decipher = crypto.createDecipheriv(algorithm, Securitykey, initVector);
+    const decipher = crypto.createDecipheriv(config.crypto.algorithm, config.crypto.securitykey, config.crypto.initVector);
     const data = req.body.data;
     let decryptedData = '';
     try {

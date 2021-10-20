@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const httpStatus = require('http-status');
 const APIError = require('../helpers/APIError');
 
+const ObjectId = mongoose.Types.ObjectId;
 /**
  * User Schema
  */
@@ -18,7 +19,12 @@ const UserSchema = new mongoose.Schema({
   },
   senha: {
     type: String,
-    required: true,
+    required: false,
+  },
+  telefone: {
+    type: String,
+    required: false,
+    default: null
   },
   createdAt: {
     type: Date,
@@ -36,8 +42,7 @@ const UserSchema = new mongoose.Schema({
 /**
  * Methods
  */
-UserSchema.method({
-});
+UserSchema.index({ email: 1 }, { unique: true });
 
 /**
  * Statics
@@ -108,6 +113,30 @@ UserSchema.statics = {
         .limit(+tamanhoPagina ? +tamanhoPagina : limit)
         .exec();
       return { users, count };
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async updateUser({
+    idUser,
+    updates
+  } = {}) {
+    const _idUser = new ObjectId(idUser);
+    const updateQuery = {};
+
+    updates.updates.forEach((update) => {
+      updateQuery[update.chave] = update.valor;
+    });
+
+    try {
+      const result = await this.findOneAndUpdate(
+        { _id: _idUser },
+        { $set: updateQuery },
+        { new: true }
+      ).exec();
+      if (!result) throw new APIError('Não existe Users com esse identificador', httpStatus.NOT_FOUND);
+      return result;
     } catch (error) {
       throw error;
     }

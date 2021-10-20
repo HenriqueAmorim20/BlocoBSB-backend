@@ -19,6 +19,9 @@ const envVarsSchema = Joi.object({
     .description('JWT Secret required to sign'),
   MONGO_HOST: Joi.string().required().description('Mongo DB host url'),
   MONGO_PORT: Joi.number().default(27019),
+  CRYPTO_ALGORITHM: Joi.string().required().description('Algoritmo usado para criptografia.'),
+  CRYPTO_KEY: Joi.string().required().description('Secret key usada para criptografia.'),
+  CRYPTO_IV: Joi.string().required().description('Initial Vector usado para criptografia.')
 })
   .unknown()
   .required();
@@ -37,6 +40,11 @@ const config = {
     host: envVars.MONGO_HOST,
     port: envVars.MONGO_PORT,
   },
+  crypto: {
+    algorithm: envVars.CRYPTO_ALGORITHM,
+    securitykey: envVars.CRYPTO_KEY,
+    initVector: envVars.CRYPTO_IV
+  }
 };
 
 module.exports = config;
