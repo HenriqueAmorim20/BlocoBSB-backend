@@ -66,13 +66,52 @@ UserSchema.statics = {
    * @param {number} limit - Limit number of users to be returned.
    * @returns {Promise<User[]>}
    */
-  list({ skip = 0, limit = 50 } = {}) {
-    return this.find()
-      .sort({ createdAt: -1 })
-      .skip(+skip)
-      .limit(+limit)
-      .exec();
-  }
+  /**
+   * Lista users
+   * @param {number} pagina - Numero da pagina atual.
+   * @param {number} tamanhoPagina - Numero de patentes por pagina.
+   * @param {*} filtros - JSON no formato de um filtro de projecao.
+   * @param {Array} campos - Campos que devem ser projetados.
+   * @returns {Promise<users[]>}
+   */
+  async list({
+    pagina = 0,
+    tamanhoPagina = 20,
+    filtros = {},
+    campos = []
+  } = {}) {
+    const mongoQuery = {};
+    let mongoProjection = {};
+
+    if (filtros !== {} && typeof filtros === 'object') {
+      Object.keys(filtros).forEach((keyFiltro) => {
+        mongoQuery[keyFiltro] = filtros[keyFiltro];
+      });
+    }
+
+    if (Array.isArray(campos) && campos.length > 0) {
+      mongoProjection = {};
+      campos.forEach((field) => {
+        mongoProjection[field] = 1;
+      });
+    }
+
+    try {
+      const count = await this.find(mongoQuery).count().exec();
+      let limit = count;
+      if (!limit) {
+        limit = 1;
+      }
+      const users = await this
+        .find(mongoQuery, mongoProjection)
+        .skip(pagina * tamanhoPagina)
+        .limit(+tamanhoPagina ? +tamanhoPagina : limit)
+        .exec();
+      return { users, count };
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 /**

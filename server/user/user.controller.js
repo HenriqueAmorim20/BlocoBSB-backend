@@ -51,22 +51,49 @@ function update(req, res, next) {
   user.nome = req.body.nome;
   user.senha = req.body.senha;
 
-  user.save()
+  user
+    .save()
     .then(savedUser => res.json(savedUser))
     .catch(e => next(e));
 }
 
-/**
- * Get user list.
- * @property {number} req.query.skip - Number of users to be skipped.
- * @property {number} req.query.limit - Limit number of users to be returned.
- * @returns {User[]}
- */
-function list(req, res, next) {
-  const { limit = 50, skip = 0 } = req.query;
-  User.list({ limit, skip })
-    .then(users => res.json(users))
-    .catch(e => next(e));
+async function listUsers(req, res, next) {
+  let filtros = {};
+  let result = {};
+  let campos = [];
+
+  const pagina = parseInt(req.query.pagina || 0, 10);
+  const tamanhoPagina = Math.min(
+    parseInt(req.query.tamanhoPagina || 20, 10),
+    100
+  );
+
+  if (req.query.filtros) {
+    try {
+      filtros = JSON.parse(req.query.filtros);
+    } catch (error) {
+      next(
+        new APIError(
+          'Filtro mal formatado, esperado um json',
+          httpStatus.BAD_REQUEST,
+          true
+        )
+      );
+    }
+  }
+
+  if (req.query.campos) {
+    campos = req.query.campos.split(',');
+  }
+
+  try {
+    result = await User.list({ pagina, tamanhoPagina, filtros, campos });
+  } catch (error) {
+    next(error);
+  }
+
+  res.setHeader('X-Total-Count', result.count);
+  res.status(httpStatus.OK).json(result.users);
 }
 
 /**
@@ -75,9 +102,10 @@ function list(req, res, next) {
  */
 function remove(req, res, next) {
   const user = req.user;
-  user.remove()
+  user
+    .remove()
     .then(deletedUser => res.json(deletedUser))
     .catch(e => next(e));
 }
 
-module.exports = { load, get, create, update, list, remove };
+module.exports = { load, get, create, update, listUsers, remove };
