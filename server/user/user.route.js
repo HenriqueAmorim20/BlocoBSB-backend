@@ -7,17 +7,21 @@ const router = express.Router(); // eslint-disable-line new-cap
 
 router.route('/')
   /** GET /api/users - Get list of users */
-  .get(userCtrl.list)
+  .get(userCtrl.listUsers)
 
   /** POST /api/users - Create new user */
   .post(validate(paramValidation.createUser), userCtrl.create);
+
+router.route('/google')
+  /** POST /api/users - Create new user with google*/
+  .post(validate(paramValidation.createUserGoogle), userCtrl.createGoogle);
 
 router.route('/:userId')
   /** GET /api/users/:userId - Get user */
   .get(userCtrl.get)
 
   /** PUT /api/users/:userId - Update user */
-  .put(validate(paramValidation.updateUser), userCtrl.update)
+  .patch(validate(paramValidation.updateUser), userCtrl.update)
 
   /** DELETE /api/users/:userId - Delete user */
   .delete(userCtrl.remove);

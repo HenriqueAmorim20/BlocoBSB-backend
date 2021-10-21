@@ -4,32 +4,9 @@ const httpStatus = require('http-status');
 const APIError = require('../helpers/APIError');
 
 const ObjectId = mongoose.Types.ObjectId;
-/**
- * User Schema
- */
-const UserSchema = new mongoose.Schema({
-  nome: {
-    type: String,
-    required: true
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  senha: {
-    type: String,
-    required: false,
-  },
-  telefone: {
-    type: String,
-    required: false,
-    default: null
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+
+const Slideschema = new mongoose.Schema({
+  url: { type: String, required: true, unique: true }
 });
 
 /**
@@ -38,46 +15,38 @@ const UserSchema = new mongoose.Schema({
  * - validations
  * - virtuals
  */
-
 /**
  * Methods
  */
-UserSchema.index({ email: 1 }, { unique: true });
+Slideschema.method({});
 
 /**
  * Statics
  */
-UserSchema.statics = {
+Slideschema.statics = {
   /**
-   * Get user
-   * @param {ObjectId} id - The objectId of user.
-   * @returns {Promise<User, APIError>}
+   * Busca por id
+   * @param {String} id - O codigo da quesao.
    */
   get(id) {
     return this.findById(id)
       .exec()
-      .then((user) => {
-        if (user) {
-          return user;
+      .then((slide) => {
+        if (slide) {
+          return slide;
         }
-        const err = new APIError('No such user exists!', httpStatus.NOT_FOUND);
+        const err = new APIError('No such Slide exists!', httpStatus.NOT_FOUND);
         return Promise.reject(err);
       });
   },
 
   /**
-   * List users in descending order of 'createdAt' timestamp.
-   * @param {number} skip - Number of users to be skipped.
-   * @param {number} limit - Limit number of users to be returned.
-   * @returns {Promise<User[]>}
-   */
-  /**
-   * Lista users
+   * Lista Slides
    * @param {number} pagina - Numero da pagina atual.
    * @param {number} tamanhoPagina - Numero de patentes por pagina.
    * @param {*} filtros - JSON no formato de um filtro de projecao.
    * @param {Array} campos - Campos que devem ser projetados.
-   * @returns {Promise<users[]>}
+   * @returns {Promise<Slides[]>}
    */
   async list({
     pagina = 0,
@@ -100,42 +69,61 @@ UserSchema.statics = {
         mongoProjection[field] = 1;
       });
     }
-
     try {
       const count = await this.find(mongoQuery).count().exec();
       let limit = count;
       if (!limit) {
         limit = 1;
       }
-      const users = await this
+      const slides = await this
         .find(mongoQuery, mongoProjection)
         .skip(pagina * tamanhoPagina)
         .limit(+tamanhoPagina ? +tamanhoPagina : limit)
         .exec();
-      return { users, count };
+      return { slides, count };
     } catch (error) {
       throw error;
     }
   },
 
-  async updateUser({
-    idUser,
+  /**
+   * Atualiza Slide
+   * @param {String} idSlide - Id do respondente
+   * @param {[ { chave: String, valor: {*} } ]} updates - Array de campos que devem ser atualizados
+   * @returns {Slide} - Documento atualizado
+   * @throws {APIError} - Erro
+   */
+  async updateById({
+    idSlide,
     updates
   } = {}) {
-    const _idUser = new ObjectId(idUser);
+    const _idSlide = new ObjectId(idSlide);
     const updateQuery = {};
-
-    updates.updates.forEach((update) => {
-      updateQuery[update.chave] = update.valor;
-    });
+    updateQuery[updates.chave] = updates.valor;
 
     try {
-      const result = await this.findOneAndUpdate(
-        { _id: _idUser },
-        { $set: updateQuery },
-        { new: true }
-      ).exec();
-      if (!result) throw new APIError('Não existe Users com esse identificador', httpStatus.NOT_FOUND);
+      const result = await this.findOneAndUpdate({ _id: _idSlide }, { $set: updateQuery }, { new: true }).exec();
+      if (!result) throw new APIError('Não existe Slide com esse identificador', httpStatus.NOT_FOUND);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Deleta Slide por Id
+   * @param {String} idSlide - Id do respondente
+   * @returns {*} - Resultado
+   * @throws {APIError} - Erro
+   */
+  async delete({
+    idSlide
+  } = {}) {
+    try {
+      const result = await this.remove({ _id: idSlide }).exec();
+      if (result.deletedCount === 0 && result.n === 0) {
+        throw new APIError('Não existe Slide com esse identificador', httpStatus.NOT_FOUND);
+      }
       return result;
     } catch (error) {
       throw error;
@@ -144,6 +132,6 @@ UserSchema.statics = {
 };
 
 /**
- * @typedef User
+ * @typedef Schema
  */
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model('Slide', Slideschema);

@@ -2,49 +2,70 @@ const jwt = require('jsonwebtoken');
 const httpStatus = require('http-status');
 const APIError = require('../helpers/APIError');
 const config = require('../../config/config');
+const User = require('../user/user.model');
+const crypto = require('crypto');
 
-// sample user, used for authentication
-const user = {
-  username: 'react',
-  password: 'express'
-};
-
-/**
+const apiAuth = {
+  /**
  * Returns jwt token if valid username and password is provided
  * @param req
  * @param res
  * @param next
  * @returns {*}
  */
-function login(req, res, next) {
-  // Ideally you'll fetch this from the db
-  // Idea here was to show how jwt works with simplicity
-  if (req.body.username === user.username && req.body.password === user.password) {
-    const token = jwt.sign({
-      username: user.username
-    }, config.jwtSecret);
-    return res.json({
-      token,
-      username: user.username
-    });
+  async login(req, res, next) {
+    const userRequest = req.body;
+    try {
+      const user = await User.find({ email: userRequest.email });
+      const cipher = crypto.createCipheriv(config.crypto.algorithm, config.crypto.securitykey, config.crypto.initVector);
+      let encryptedData = cipher.update(userRequest.senha, 'utf-8', 'hex');
+      encryptedData += cipher.final('hex');
+
+      if (user[0].senha === encryptedData) {
+        const token = jwt.sign({
+          email: user.email
+        }, config.jwtSecret);
+        return res.json({
+          token,
+          user: user[0]
+        });
+      }
+      const err = new APIError('Senha incorreta.', httpStatus.UNAUTHORIZED, true);
+      return next(err);
+    } catch (error) {
+      const err = new APIError('Email não encontrado.', httpStatus.NOT_FOUND, true);
+      return next(err);
+    }
+  },
+
+  async encrypt(req, res, next) {
+    const cipher = crypto.createCipheriv(config.crypto.algorithm, config.crypto.securitykey, config.crypto.initVector);
+    const data = req.body.data;
+    let encryptedData = '';
+
+    try {
+      encryptedData = cipher.update(data, 'utf-8', 'hex');
+      encryptedData += cipher.final('hex');
+      return res.json({ encrypted: encryptedData });
+    } catch (error) {
+      const err = new APIError('Erro na criptografia', httpStatus.NOT_FOUND, true);
+      return next(err);
+    }
+  },
+
+  async decrypt(req, res, next) {
+    const decipher = crypto.createDecipheriv(config.crypto.algorithm, config.crypto.securitykey, config.crypto.initVector);
+    const data = req.body.data;
+    let decryptedData = '';
+    try {
+      decryptedData = decipher.update(data, 'hex', 'utf-8');
+      decryptedData += decipher.final('utf8');
+      return res.json({ decrypted: decryptedData });
+    } catch (error) {
+      const err = new APIError('Erro na criptografia', httpStatus.NOT_FOUND, true);
+      return next(err);
+    }
   }
+};
 
-  const err = new APIError('Authentication error', httpStatus.UNAUTHORIZED, true);
-  return next(err);
-}
-
-/**
- * This is a protected route. Will return random number only if jwt token is provided in header.
- * @param req
- * @param res
- * @returns {*}
- */
-function getRandomNumber(req, res) {
-  // req.user is assigned by jwt middleware if valid token is provided
-  return res.json({
-    user: req.user,
-    num: Math.random() * 100
-  });
-}
-
-module.exports = { login, getRandomNumber };
+module.exports = apiAuth;
