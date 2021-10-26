@@ -11,7 +11,6 @@ const apiNewsletters = {
    */
   async listNewsletters(req, res, next) {
     let filtros = {};
-    let result = {};
     let campos = [];
 
     const pagina = parseInt(req.query.pagina || 0, 10);
@@ -30,13 +29,11 @@ const apiNewsletters = {
     }
 
     try {
-      result = await Newsletter.list({ pagina, tamanhoPagina, filtros, campos });
+      const result = await Newsletter.list({ pagina, tamanhoPagina, filtros, campos });
+      res.status(httpStatus.OK).json(result);
     } catch (error) {
       next(error);
     }
-
-    res.setHeader('X-Total-Count', result.count);
-    res.status(httpStatus.OK).json(result.newsletters);
   },
 
   /**
