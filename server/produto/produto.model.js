@@ -10,6 +10,7 @@ const Produtoschema = new mongoose.Schema({
   preco: { type: String, required: true },
   descricao: { type: String, required: true },
   urlMiniatura: { type: String, required: true },
+  urlMiniaturaAlternativa: { type: String, required: false },
   urlImagens: [{ type: String, required: true }],
   tipo: { type: String, enum: ['adulto', 'infantil'], required: true },
   destaque: { type: Boolean, required: false, default: false }
