@@ -24,6 +24,7 @@ module.exports = {
       descricao: Joi.string(),
       tipo: Joi.string().required(),
       urlMiniatura: Joi.string().required(),
+      urlMiniaturaAlternativa: Joi.string(),
       urlImagens: Joi.array().required()
     },
   },
